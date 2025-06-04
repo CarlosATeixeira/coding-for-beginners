@@ -40,53 +40,55 @@
  *  - literal: valor numérico ou string, quando aplicável (para literais)
  *  - line: número da linha original (para mensagens de erro)
  */
-enum TokenType {
-	// DELIMITADORES
-	LEFT_PAREN, RIGHT_PAREN,       // ( )
-	COMMA, SEMICOLON,               // , ;
-	COLON,                          // :
-	DOT,                            // .
-  
-	// OPERADORES ARITMÉTICOS
-	PLUS, MINUS, STAR, SLASH, PERCENT, // + - * / %
-  
-	// OPERADORES RELACIONAIS
-	BANG, BANG_EQUAL,        // !  !=
-	EQUAL, EQUAL_EQUAL,      // =  ==
-	GREATER, GREATER_EQUAL,  // >  >=
-	LESS, LESS_EQUAL,        // <  <=
-  
-	// OPERADORES LÓGICOS (palavras)
-	AND, OR, NOT, XOR,
-  
-	// LITERALS
-	IDENTIFIER, STRING, NUMBER,
-  
-	// PALAVRAS‐CHAVE DO VISUALG (case‐insensitive)
-	ALGORITMO, VAR, CONST, INICIO, FIMALGORITMO,
-	TIPO, PROCEDIMENTO, FIMPROCEDIMENTO,
-	FUNCAO, FIMFUNCAO,
-	PARA, FIMPARA, DE, ATE, PASSO, FACA,
-	ENQUANTO, FIMENQUANTO,
-	REPITA, ATECOMANDO, // “REPITA ... ATE”
-	ESCOLHA, CASO, OUTROCASO, FIMESCOLHA,
-	SE, ENTAO, SENAO, FIMSE,
-	RETORNE, INTERROMPA,
-	PAUSA, LIMITELA,        // “pausa” e “limpatela”
-	ESCREVA, ESCREVAL, LEIA,
-  
-	// TIPOS DE DADOS
-	INTEIRO, REAL, LOGICO, CARACTERE, LITERAL,
-  
-	// FUNÇÕES E CONSTANTES
-	ABS, LOG, SEN, COS, TAN, EXP, POT, QUAD, COTAN, ARCSEN, ARCCOS, RAIZQ,
-	RAND, RANDI, DIV, MOD,
-	POS, ASC, CARAC, COPIA, INT, COMPR, MAIUSC, MINUSC, NUMPCARAC, CARACPNUM,
-	MUDA_COR,
-	VERDADEIRO, FALSO,
-  
-	EOF
-  }
+export const TokenType = {
+        // DELIMITADORES
+        LEFT_PAREN: 'LEFT_PAREN', RIGHT_PAREN: 'RIGHT_PAREN',       // ( )
+        COMMA: 'COMMA', SEMICOLON: 'SEMICOLON',               // , ;
+        COLON: 'COLON',                          // :
+        DOT: 'DOT',                            // .
+
+        // OPERADORES ARITMÉTICOS
+        PLUS: 'PLUS', MINUS: 'MINUS', STAR: 'STAR', SLASH: 'SLASH', PERCENT: 'PERCENT', // + - * / %
+
+        // OPERADORES RELACIONAIS
+        BANG: 'BANG', BANG_EQUAL: 'BANG_EQUAL',        // !  !=
+        EQUAL: 'EQUAL', EQUAL_EQUAL: 'EQUAL_EQUAL',      // =  ==
+        GREATER: 'GREATER', GREATER_EQUAL: 'GREATER_EQUAL',  // >  >=
+        LESS: 'LESS', LESS_EQUAL: 'LESS_EQUAL',        // <  <=
+
+        // OPERADORES LÓGICOS (palavras)
+        AND: 'AND', OR: 'OR', NOT: 'NOT', XOR: 'XOR',
+
+        // LITERALS
+        IDENTIFIER: 'IDENTIFIER', STRING: 'STRING', NUMBER: 'NUMBER',
+
+        // PALAVRAS‐CHAVE DO VISUALG (case‐insensitive)
+        ALGORITMO: 'ALGORITMO', VAR: 'VAR', CONST: 'CONST', INICIO: 'INICIO', FIMALGORITMO: 'FIMALGORITMO',
+        TIPO: 'TIPO', PROCEDIMENTO: 'PROCEDIMENTO', FIMPROCEDIMENTO: 'FIMPROCEDIMENTO',
+        FUNCAO: 'FUNCAO', FIMFUNCAO: 'FIMFUNCAO',
+        PARA: 'PARA', FIMPARA: 'FIMPARA', DE: 'DE', ATE: 'ATE', PASSO: 'PASSO', FACA: 'FACA',
+        ENQUANTO: 'ENQUANTO', FIMENQUANTO: 'FIMENQUANTO',
+        REPITA: 'REPITA', ATECOMANDO: 'ATECOMANDO', // “REPITA ... ATE”
+        ESCOLHA: 'ESCOLHA', CASO: 'CASO', OUTROCASO: 'OUTROCASO', FIMESCOLHA: 'FIMESCOLHA',
+        SE: 'SE', ENTAO: 'ENTAO', SENAO: 'SENAO', FIMSE: 'FIMSE',
+        RETORNE: 'RETORNE', INTERROMPA: 'INTERROMPA',
+        PAUSA: 'PAUSA', LIMITELA: 'LIMITELA',        // “pausa” e “limpatela”
+        ESCREVA: 'ESCREVA', ESCREVAL: 'ESCREVAL', LEIA: 'LEIA',
+
+        // TIPOS DE DADOS
+        INTEIRO: 'INTEIRO', REAL: 'REAL', LOGICO: 'LOGICO', CARACTERE: 'CARACTERE', LITERAL: 'LITERAL',
+
+        // FUNÇÕES E CONSTANTES
+        ABS: 'ABS', LOG: 'LOG', SEN: 'SEN', COS: 'COS', TAN: 'TAN', EXP: 'EXP', POT: 'POT', QUAD: 'QUAD', COTAN: 'COTAN', ARCSEN: 'ARCSEN', ARCCOS: 'ARCCOS', RAIZQ: 'RAIZQ',
+        RAND: 'RAND', RANDI: 'RANDI', DIV: 'DIV', MOD: 'MOD',
+        POS: 'POS', ASC: 'ASC', CARAC: 'CARAC', COPIA: 'COPIA', INT: 'INT', COMPR: 'COMPR', MAIUSC: 'MAIUSC', MINUSC: 'MINUSC', NUMPCARAC: 'NUMPCARAC', CARACPNUM: 'CARACPNUM',
+        MUDA_COR: 'MUDA_COR',
+        VERDADEIRO: 'VERDADEIRO', FALSO: 'FALSO',
+
+        EOF: 'EOF'
+} as const;
+
+export type TokenType = typeof TokenType[keyof typeof TokenType];
   
   /**
    * Estrutura básica de um token lido pelo lexer.
@@ -98,15 +100,15 @@ enum TokenType {
 	line: number;
   
 	constructor(type: TokenType, lexeme: string, literal: any, line: number) {
-	  this.type = type;       // Tipo do token (enum TokenType)
+          this.type = type;       // Tipo do token (TokenType)
 	  this.lexeme = lexeme;   // String original (ex.: "algoritmo", "x", "123", "\"Olá\"")
 	  this.literal = literal; // Valor para literais (ex.: número float, string sem aspas)
 	  this.line = line;       // Linha no código fonte (para relatório de erro)
 	}
   
-	toString() {
-	  return `[${TokenType[this.type]}] ${this.lexeme} ${this.literal}`;
-	}
+        toString() {
+          return `[${this.type}] ${this.lexeme} ${this.literal}`;
+        }
   }
   
   ///////////////////////
@@ -856,14 +858,14 @@ enum TokenType {
 	 * Lê comandos até encontrar um token de término (ex.: FIMALGORITMO, FIMFUNCAO, FIMPROCEDIMENTO).
 	 * Retorna array de Stmt.
 	 */
-	private blockUntil(endType: TokenType): Stmt[] {
+        private blockUntil(endType: TokenType): Stmt[] {
 	  const statements: Stmt[] = [];
 	  // Enquanto não for o token de término e não for EOF...
 	  while (!this.check(endType) && !this.isAtEnd()) {
 		statements.push(this.statement());
 	  }
 	  // Consome o token endType (FIM...)
-	  this.consume(endType, `Esperava '${TokenType[endType]}' para finalizar bloco.`);
+          this.consume(endType, `Esperava '${endType}' para finalizar bloco.`);
 	  return statements;
 	}
   
@@ -1274,10 +1276,10 @@ enum TokenType {
 	/**
 	 * Consome token de tipo “type” ou dispara erro com “message”.
 	 */
-	private consume(type: TokenType, message: string): Token {
-	  if (this.check(type)) return this.advance();
-	  throw new Error(`[Linha ${this.peek().line}] ${message} (achado: ${TokenType[this.peek().type]}).`);
-	}
+          private consume(type: TokenType, message: string): Token {
+            if (this.check(type)) return this.advance();
+            throw new Error(`[Linha ${this.peek().line}] ${message} (achado: ${this.peek().type}).`);
+          }
   
 	/**
 	 * Verifica se o próximo token é do tipo dado, sem consumi‐lo.
