@@ -240,33 +240,9 @@ class Lexer {
 			logico: TokenType.LOGICO,
 			caractere: TokenType.CARACTERE,
 			literal: TokenType.LITERAL,
-			abs: TokenType.ABS,
-			log: TokenType.LOG,
-			sen: TokenType.SEN,
-			cos: TokenType.COS,
-			tan: TokenType.TAN,
-			exp: TokenType.EXP,
-			pot: TokenType.POT,
-			quad: TokenType.QUAD,
-			cotan: TokenType.COTAN,
-			arcsen: TokenType.ARCSEN,
-			arccos: TokenType.ARCCOS,
-			raizq: TokenType.RAIZQ,
-			rand: TokenType.RAND,
-			randi: TokenType.RANDI,
 			div: TokenType.DIV,
 			mod: TokenType.MOD,
-			pos: TokenType.POS,
-			asc: TokenType.ASC,
-			carac: TokenType.CARAC,
-			copia: TokenType.COPIA,
 			int: TokenType.INT,
-			compr: TokenType.COMPR,
-			maiusc: TokenType.MAIUSC,
-			minusc: TokenType.MINUSC,
-			numpcarac: TokenType.NUMPCARAC,
-			caracpnum: TokenType.CARACPNUM,
-			mudacor: TokenType.MUDA_COR,
 			verdadeiro: TokenType.VERDADEIRO,
 			falso: TokenType.FALSO,
 			e: TokenType.AND,
@@ -856,7 +832,9 @@ class Parser {
 			}
 			// Pode ser declaração (var, const, funcao, procedimento) ou comando (escreva, se etc.)
 			if (this.match(TokenType.VAR)) {
-				nodes.push(this.varDeclaration());
+				do {
+					nodes.push(this.varDeclaration());
+				} while (this.isVarDeclStart());
 			} else if (this.match(TokenType.CONST)) {
 				nodes.push(this.constDeclaration());
 			} else if (this.match(TokenType.FUNCAO)) {
@@ -898,6 +876,21 @@ class Parser {
 			"Esperava ';' após declaração de variável."
 		);
 		return new VarDecl(names, typeToken.lexeme.toLowerCase());
+	}
+
+	/**
+	 * Verifica se a sequência de tokens restante inicia uma nova declaração de variável.
+	 * Útil para permitir múltiplas linhas após a palavra-chave VAR.
+	 */
+	private isVarDeclStart(): boolean {
+		if (!this.check(TokenType.IDENTIFIER)) return false;
+		let idx = this.current + 1;
+		while (this.tokens[idx] && this.tokens[idx].type === TokenType.COMMA) {
+			idx++;
+			if (this.tokens[idx]?.type !== TokenType.IDENTIFIER) return false;
+			idx++;
+		}
+		return this.tokens[idx]?.type === TokenType.COLON;
 	}
 
 	/**
@@ -1357,7 +1350,7 @@ class Parser {
 	 * Implementamos precedência:
 	 *   logic_or    -> logic_and ( ( 'OU' | 'XOR' ) logic_and )* ;
 	 *   logic_and   -> equality ( 'E' equality )* ;
-	 *   equality    -> comparison ( ( '==' | '!=' ) comparison )* ;
+	 *   equality    -> comparison ( ( '=' | '==' | '!=' ) comparison )* ;
 	 *   comparison  -> addition ( ( '>' | '>=' | '<' | '<=' ) addition )* ;
 	 *   addition    -> multiplication ( ( '+' | '-' ) multiplication )* ;
 	 *   multiplication -> unary ( ( '*' | '/' | 'DIV' | 'MOD' ) unary )* ;
@@ -1391,7 +1384,13 @@ class Parser {
 
 	private equality(): Expr {
 		let expr = this.comparison();
-		while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) {
+		while (
+			this.match(
+				TokenType.BANG_EQUAL,
+				TokenType.EQUAL_EQUAL,
+				TokenType.EQUAL
+			)
+		) {
 			const operator = this.previous();
 			const right = this.comparison();
 			expr = new BinaryExpr(expr, operator, right);
@@ -2643,6 +2642,7 @@ class Interpreter {
 				if (typeof left === "number" && typeof right === "number")
 					return left <= right;
 				throw new Error("Operador '<=' inválido para operandos dados.");
+			case TokenType.EQUAL:
 			case TokenType.EQUAL_EQUAL:
 				return this.isEqual(left, right);
 			case TokenType.BANG_EQUAL:
