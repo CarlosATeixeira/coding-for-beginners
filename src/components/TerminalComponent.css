@@ -1,0 +1,9 @@
+.terminal-input {
+	width: 100%;
+	background: black;
+	color: #00ff00;
+	border: none;
+	outline: none;
+	font-family: inherit;
+	padding: 4px;
+}

@@ -8,15 +8,27 @@ function CodeEditorComponent() {
 	const lineNumberRef = useRef<HTMLDivElement>(null);
 	const [lineNumbers, setLineNumbers] = useState("1");
 	const [terminalLines, setTerminalLines] = useState<string[]>([]);
+	const inputResolverRef = useRef<((text: string) => void) | null>(null);
 
-	function RunCode() {
+	function ResetTerminal() {
+		setTerminalLines([]);
+	}
+
+	async function RunCode() {
 		if (!textareaRef.current) return;
 
-		setTerminalLines([]);
+		ResetTerminal();
 
-		runVisualgProgram(textareaRef.current.value, (line) =>
+		await runVisualgProgram(textareaRef.current.value, (line) =>
 			setTerminalLines((prev) => [...prev, line])
 		);
+	}
+
+	function handleTerminalInput(text: string) {
+		if (inputResolverRef.current) {
+			inputResolverRef.current(text);
+			inputResolverRef.current = null;
+		}
 	}
 
 	function HandleInput() {
@@ -175,61 +187,183 @@ function CodeEditorComponent() {
 	}
 
 	function HandleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-		if (e.key === "Tab") {
-			e.preventDefault();
+		if (e.key !== "Tab") return;
 
-			const textarea = e.currentTarget;
-			const { selectionStart, selectionEnd, value } = textarea;
+		e.preventDefault();
 
-			const lines = value.split("\n");
+		const textarea = e.currentTarget;
+		const { selectionStart, selectionEnd, value } = textarea;
 
-			// Calcula o índice das linhas afetadas
-			let start = selectionStart;
-			let end = selectionEnd;
+		const getLineStart = (text: string, index: number) =>
+			text.lastIndexOf("\n", index - 1) + 1;
+		const countLines = (index: number) =>
+			(value.slice(0, index).match(/\n/g) || []).length;
 
-			let charCount = 0;
-			let startLine = 0;
-			let endLine = 0;
+		const hasSelection = selectionStart !== selectionEnd;
+		const startLine = countLines(selectionStart);
+		const endLine = countLines(selectionEnd);
+		const lines = value.split("\n");
 
-			for (let i = 0; i < lines.length; i++) {
-				const lineLength = lines[i].length + 1; // +1 por '\n'
-				if (charCount + lineLength > start && startLine === 0) {
-					startLine = i;
-				}
-				if (charCount + lineLength >= end) {
-					endLine = i;
-					break;
-				}
-				charCount += lineLength;
+		if (!e.shiftKey) {
+			// ----- TAB -----
+			if (!hasSelection) {
+				// Nenhuma seleção: insere \t na posição do cursor
+				textarea.value =
+					value.slice(0, selectionStart) +
+					"\t" +
+					value.slice(selectionEnd);
+				const pos = selectionStart + 1;
+				setTimeout(() => {
+					textarea.selectionStart = pos;
+					textarea.selectionEnd = pos;
+				});
+				HandleInput();
+				return;
 			}
 
-			let offset = 0;
+			if (startLine === endLine) {
+				// Seleção em uma única linha
+				lines[startLine] = "\t" + lines[startLine];
+				textarea.value = lines.join("\n");
+				const posStart = selectionStart + 1;
+				const posEnd = selectionEnd + 1;
+				setTimeout(() => {
+					textarea.selectionStart = posStart;
+					textarea.selectionEnd = posEnd;
+				});
+				HandleInput();
+				return;
+			}
 
+			// Seleção em múltiplas linhas
 			for (let i = startLine; i <= endLine; i++) {
-				if (e.shiftKey) {
-					// SHIFT+TAB: Remove 1 tab ou 4 espaços no início
-					if (lines[i].startsWith("\t")) {
-						lines[i] = lines[i].substring(1);
-						if (i === startLine) offset -= 1;
-					} else if (lines[i].startsWith("    ")) {
-						lines[i] = lines[i].substring(4);
-						if (i === startLine) offset -= 4;
-					}
-				} else {
-					// TAB: Adiciona \t no início
-					lines[i] = "\t" + lines[i];
-					if (i === startLine) offset += 1;
+				lines[i] = "\t" + lines[i];
+			}
+			textarea.value = lines.join("\n");
+			const added = endLine - startLine + 1;
+			const posStart = selectionStart + 1;
+			const posEnd = selectionEnd + added;
+			setTimeout(() => {
+				textarea.selectionStart = posStart;
+				textarea.selectionEnd = posEnd;
+			});
+			HandleInput();
+			return;
+		}
+
+		// ----- SHIFT + TAB -----
+		if (!hasSelection) {
+			const lineStart = getLineStart(value, selectionStart);
+			const lineEnd =
+				value.indexOf("\n", lineStart) === -1
+					? value.length
+					: value.indexOf("\n", lineStart);
+			const lineText = value.slice(lineStart, lineEnd);
+
+			// Remove TAB vizinho ao cursor na mesma linha
+			if (
+				selectionStart > lineStart &&
+				value[selectionStart - 1] === "\t"
+			) {
+				textarea.value =
+					value.slice(0, selectionStart - 1) +
+					value.slice(selectionStart);
+				const pos = selectionStart - 1;
+				setTimeout(() => {
+					textarea.selectionStart = pos;
+					textarea.selectionEnd = pos;
+				});
+				HandleInput();
+				return;
+			}
+
+			let removed = 0;
+			let newLine = lineText;
+			if (lineText.startsWith("\t")) {
+				newLine = lineText.slice(1);
+				removed = 1;
+			} else {
+				const m = lineText.match(/^\s+/);
+				if (m) {
+					newLine = lineText.slice(m[0].length);
+					removed = m[0].length;
 				}
 			}
 
-			const newValue = lines.join("\n");
-			textarea.value = newValue;
+			if (removed > 0) {
+				textarea.value =
+					value.slice(0, lineStart) + newLine + value.slice(lineEnd);
+				const pos = selectionStart - removed;
+				setTimeout(() => {
+					textarea.selectionStart = pos;
+					textarea.selectionEnd = pos;
+				});
+				HandleInput();
+			}
+			return;
+		}
 
+		if (startLine === endLine) {
+			// Seleção em apenas uma linha
+			let removed = 0;
+			if (lines[startLine].startsWith("\t")) {
+				lines[startLine] = lines[startLine].substring(1);
+				removed = 1;
+			} else {
+				const m = lines[startLine].match(/^\s+/);
+				if (m) {
+					lines[startLine] = lines[startLine].substring(m[0].length);
+					removed = m[0].length;
+				}
+			}
+
+			if (removed > 0) {
+				textarea.value = lines.join("\n");
+				const posStart = selectionStart - removed;
+				const posEnd = selectionEnd - removed;
+				setTimeout(() => {
+					textarea.selectionStart = posStart;
+					textarea.selectionEnd = posEnd;
+				});
+				HandleInput();
+			}
+			return;
+		}
+
+		// Seleção em múltiplas linhas
+		let removeTab = lines
+			.slice(startLine, endLine + 1)
+			.some((l) => l.startsWith("\t"));
+		let totalRemoved = 0;
+		let removedFromStartLine = 0;
+
+		if (removeTab) {
+			for (let i = startLine; i <= endLine; i++) {
+				if (lines[i].startsWith("\t")) {
+					lines[i] = lines[i].substring(1);
+					totalRemoved += 1;
+					if (i === startLine) removedFromStartLine = 1;
+				}
+			}
+		} else {
+			for (let i = startLine; i <= endLine; i++) {
+				const m = lines[i].match(/^\s+/);
+				if (m) {
+					lines[i] = lines[i].substring(m[0].length);
+					totalRemoved += m[0].length;
+					if (i === startLine) removedFromStartLine = m[0].length;
+				}
+			}
+		}
+
+		if (totalRemoved > 0) {
+			textarea.value = lines.join("\n");
+			const posStart = selectionStart - removedFromStartLine;
+			const posEnd = selectionEnd - totalRemoved;
 			setTimeout(() => {
-				textarea.selectionStart = selectionStart + offset;
-				textarea.selectionEnd = selectionEnd + offset;
+				textarea.selectionStart = posStart;
+				textarea.selectionEnd = posEnd;
 			});
-
 			HandleInput();
 		}
 	}
@@ -252,7 +386,11 @@ function CodeEditorComponent() {
 					/>
 				</div>
 			</div>
-			<TerminalComponent onRunCode={RunCode} lines={terminalLines} />
+			<TerminalComponent
+				onRunCode={RunCode}
+				lines={terminalLines}
+				onInput={handleTerminalInput}
+			/>
 		</div>
 	);
 }

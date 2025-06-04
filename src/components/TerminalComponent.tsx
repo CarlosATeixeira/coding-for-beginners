@@ -1,9 +1,20 @@
+import "./TerminalComponent.css";
+
 interface TerminalProps {
-	onRunCode: () => void;
+	onRunCode: () => void | Promise<void>;
 	lines: string[];
+	onInput?: (text: string) => void;
 }
 
-function TerminalComponent({ onRunCode, lines }: TerminalProps) {
+function TerminalComponent({ onRunCode, lines, onInput }: TerminalProps) {
+	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		if (e.key === "Enter" && onInput) {
+			const value = e.currentTarget.value;
+			e.currentTarget.value = "";
+			onInput(value);
+		}
+	}
+
 	return (
 		<div className="terminal">
 			<div className="terminal-header">
@@ -17,6 +28,11 @@ function TerminalComponent({ onRunCode, lines }: TerminalProps) {
 					<div key={i}>{line}</div>
 				))}
 			</div>
+			<input
+				type="text"
+				className="terminal-input"
+				onKeyDown={handleKeyDown}
+			/>
 		</div>
 	);
 }
