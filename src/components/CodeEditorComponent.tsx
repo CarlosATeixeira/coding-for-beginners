@@ -12,9 +12,11 @@ function CodeEditorComponent() {
 	function RunCode() {
 		if (!textareaRef.current) return;
 
-		setTerminalLines([]); // limpar terminal
+		setTerminalLines([]);
 
-		runVisualgProgram(textareaRef.current.value);
+		runVisualgProgram(textareaRef.current.value, (line) =>
+			setTerminalLines((prev) => [...prev, line])
+		);
 	}
 
 	function HandleInput() {

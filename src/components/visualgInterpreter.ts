@@ -733,6 +733,15 @@ export type TokenType = typeof TokenType[keyof typeof TokenType];
 	parse(): ASTNode[] {
 	  const nodes: ASTNode[] = [];
 	  while (!this.isAtEnd()) {
+		if (this.match(TokenType.ALGORITMO)) {
+			// Se houver um identificador (nome do algoritmo), consome-o:
+			if (this.match(TokenType.IDENTIFIER)) {
+			  // Se quiser exigir ; após o nome, faça this.consume(TokenType.SEMICOLON, ...);
+			  this.match(TokenType.SEMICOLON); 
+			}
+			// A seguir continua para a próxima iteração, sem gerar nó AST para "algoritmo":
+			continue;
+		  }
 		// Pode ser declaração (var, const, funcao, procedimento) ou comando (escreva, se etc.)
 		if (this.match(TokenType.VAR)) {
 		  nodes.push(this.varDeclaration());
@@ -1682,13 +1691,15 @@ export type TokenType = typeof TokenType[keyof typeof TokenType];
   
   class Interpreter {
 	private globals: Environment;   // ambiente global
-	private environment: Environment; // ambiente atual (pode mudar em chamadas)
-	private functions: Map<string, FuncDecl> = new Map();  // UDFs
-	private procedures: Map<string, ProcDecl> = new Map(); // UDFs sem retorno
-  
-	constructor() {
-	  this.globals = new Environment(null);
-	  this.environment = this.globals;
+        private environment: Environment; // ambiente atual (pode mudar em chamadas)
+        private functions: Map<string, FuncDecl> = new Map();  // UDFs
+        private procedures: Map<string, ProcDecl> = new Map(); // UDFs sem retorno
+        private output: (line: string) => void;
+
+        constructor(output: (line: string) => void = console.log) {
+          this.output = output;
+          this.globals = new Environment(null);
+          this.environment = this.globals;
   
 	  // Aqui podemos pré‐definir eventuais variáveis de sistema, se necessário
 	  // Exemplo: Pi = 3.141592653589793
@@ -1799,13 +1810,7 @@ export type TokenType = typeof TokenType[keyof typeof TokenType];
 	  }
 	  // Concatena todos valores num único string
 	  const line = outputs.join(" ");
-	  if (stmt.newline) {
-		console.log(line);
-	  } else {
-		// imprimir sem quebra de linha: aqui, só fazemos console.log mesmo
-		// é impossível em JS/browsers imprimir sem newline sem usar process.stdout
-		console.log(line);
-	  }
+          this.output(line);
 	}
   
 	/**
@@ -2037,8 +2042,8 @@ export type TokenType = typeof TokenType[keyof typeof TokenType];
 	 * PAUSA (apenas print e espera Enter) ou LIMITELA => console.clear()
 	 */
 	private executeSimple(stmt: SimpleStmt) {
-	  if (stmt.type === TokenType.PAUSA) {
-		console.log("[Pressione ENTER para continuar]");
+		if (stmt.type === TokenType.PAUSA) {
+			this.output("[Pressione ENTER para continuar]");
 		let prompt: any;
 		try {
 		  // @ts-ignore
@@ -2275,7 +2280,7 @@ export type TokenType = typeof TokenType[keyof typeof TokenType];
    * runVisualgProgram é a função que unifica Lexer, Parser e Interpreter.
    * Basta chamar runVisualgProgram(códigoEmString).
    */
-  export function runVisualgProgram(source: string) {
+  export function runVisualgProgram(source: string, output?: (line: string) => void) {
 	try {
 	  // 1) Tokenização
 	  const lexer = new Lexer(source);
@@ -2286,10 +2291,14 @@ export type TokenType = typeof TokenType[keyof typeof TokenType];
 	  const nodes = parser.parse();
   
 	  // 3) Interpretação
-	  const interpreter = new Interpreter();
-	  interpreter.interpret(nodes);
-	} catch (e: any) {
-	  console.error(`Erro em execução: ${e.message}`);
+	  const interpreter = new Interpreter(output);
+          interpreter.interpret(nodes);
+        } catch (e: any) {
+          if (output) {
+                output(`Erro em execução: ${e.message}`);
+          } else {
+                console.error(`Erro em execução: ${e.message}`);
+          }
 	}
   }
   
