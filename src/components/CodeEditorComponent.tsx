@@ -1,13 +1,12 @@
 import { useRef, useState } from "react";
 import "./CodeEditorComponent.css";
 import TerminalComponent from "./TerminalComponent";
-import { runVisualg } from "./visualgInterpreter";
+import { runVisualgProgram } from "./visualgInterpreter";
 
 function CodeEditorComponent() {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const lineNumberRef = useRef<HTMLDivElement>(null);
 	const [lineNumbers, setLineNumbers] = useState("1");
-	const [terminalOutput, setTerminalOutput] = useState("");
 	const [terminalLines, setTerminalLines] = useState<string[]>([]);
 
 	function RunCode() {
@@ -15,13 +14,7 @@ function CodeEditorComponent() {
 
 		setTerminalLines([]); // limpar terminal
 
-		const print = (line: string) => {
-			setTerminalLines((prev) => [...prev, line]);
-		};
-
-		const input = () => prompt("Digite o valor:") || "";
-
-		runVisualg(textareaRef.current.value, print, input);
+		runVisualgProgram(textareaRef.current.value);
 	}
 
 	function HandleInput() {
